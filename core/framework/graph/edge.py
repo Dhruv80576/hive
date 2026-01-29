@@ -524,26 +524,26 @@ class GraphSpec(BaseModel):
     def _detect_cycles(self) -> list[str]:
         """
         Detect cycles in the graph using Depth-First Search.
-        
+
         A cycle exists if we can reach a node that's already in the current
         recursion stack (path from entry to current node).
-        
+
         Returns:
             List of error messages describing any cycles found
         """
         errors = []
         visited = set()
         rec_stack = set()  # Nodes in current DFS path
-        
+
         def dfs(node_id: str, path: list[str]) -> bool:
             """Returns True if cycle detected from this node"""
             visited.add(node_id)
             rec_stack.add(node_id)
             path.append(node_id)
-            
+
             for edge in self.get_outgoing_edges(node_id):
                 target = edge.target
-                
+
                 if target not in visited:
                     # Visit unvisited node
                     if dfs(target, path[:]):
@@ -552,30 +552,28 @@ class GraphSpec(BaseModel):
                     # Found a back edge (cycle)
                     cycle_start = path.index(target)
                     cycle = path[cycle_start:] + [target]
-                    
+
                     # Build readable cycle description with node names
                     cycle_names = []
                     for nid in cycle:
                         node = self.get_node(nid)
                         cycle_names.append(node.name if node else nid)
-                    
-                    errors.append(
-                        f"Cycle detected: {' → '.join(cycle_names)}"
-                    )
+
+                    errors.append(f"Cycle detected: {' → '.join(cycle_names)}")
                     return True
-            
+
             rec_stack.remove(node_id)
             return False
-        
+
         # Start DFS from all entry points
         entry_points = [self.entry_node]
         entry_points.extend(self.entry_points.values())
         entry_points.extend([ep.entry_node for ep in self.async_entry_points])
-        
+
         for entry in set(entry_points):  # Remove duplicates
             if entry not in visited:
                 dfs(entry, [])
-        
+
         return errors
 
     def validate(self) -> list[str]:
